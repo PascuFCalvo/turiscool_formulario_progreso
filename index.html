@@ -111,8 +111,8 @@
          let select = document.getElementById("selectorCursos");
          for (let i = 0; i < cursos.length; i++) {
             let option = document.createElement("option");
-            option.value = cursos[i]; 
-            option.textContent = cursos[i]; 
+            option.value = cursos[i];
+            option.textContent = cursos[i];
             select.appendChild(option);
          }
       }
@@ -292,7 +292,6 @@
 
       async function buscarProgreso() {
          let divProgreso = document.getElementById("resultado");
-         divProgreso.innerHTML = "Cargando..."; // Mostrar un mensaje de carga inicial
          let progreso = [];
 
          for (let i = 0; i < alumnosConCurso.length; i++) {
