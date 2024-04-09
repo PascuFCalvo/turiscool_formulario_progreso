@@ -16,7 +16,7 @@
       }
 
       form,
-      #resultado,
+      .estrecho,
       .progresoUsuario {
          max-width: 600px;
          margin: 20px auto;
@@ -62,6 +62,84 @@
       button:hover {
          background-color: #45a049;
       }
+      
+      button:disabled {
+         background-color: #cccccc;
+         cursor: not-allowed;
+      }
+
+      #mensajeError1, #mensajeError2 {
+         color: red;
+         font-size: 12px;
+         margin: 0 20px 0px 10px;
+      }
+
+      #etiqueta, #etiqueta2 {
+         margin: 10px 0 10px 0;
+      }
+
+      table {
+         border-collapse: collapse;
+         width: 100%;
+      }
+
+      th, td {
+         border: 1px solid #ddd;
+         padding: 20px;
+      }
+
+      th {
+      background-color: #f2f2f2;
+      }
+
+      .tablaDatos th:first-child,
+      .tablaDatos td:first-child {
+         width: 1%;
+         white-space: nowrap;
+      }
+
+      .primeraFila th {
+         color:#D5DDE5;;
+         background:#1b1e24;
+         border-bottom:4px solid #9ea7af;
+         border-right: 1px solid #343a45;
+         font-size:16px;
+         font-weight: 100;
+         text-align:center;
+         text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+         vertical-align:middle;
+      }
+
+      td {
+         background:#FFFFFF;
+         padding:20px;
+         vertical-align:middle;
+         font-weight:300;
+         font-size:18px;
+         text-shadow: -1px -1px 1px rgba(0, 0, 0, 0.1);
+         border-right: 1px solid #C1C3D1;
+         text-align: left;
+         white-space: nowrap;
+         overflow: hidden;
+         text-overflow: ellipsis;
+      }
+
+      label {
+         font-size: 21px;
+         font-weight: 600;
+         color: #1b1e24;
+         display: block;
+
+      }
+
+      .ancho {
+         max-width: 1200px;
+         margin: 20px auto;
+         background: #fff;
+         padding: 20px;
+         border-radius: 8px;
+         box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
 
       @media (max-width: 600px) {
          form {
@@ -103,6 +181,8 @@
       let usuariosConCursos = [];
       let alumnosConCurso = [];
       let resuiltadosImpresos = false;
+      let arrayTagsBusqueda = [];
+      let datosRecibidos = false;
 
 
       //crea las options del desplegale de cursos
@@ -121,19 +201,64 @@
 
       function botonEnviar() {
          usuariosFiltrados = [];
+
          let divProgreso = document.getElementById("resultado");
          let loadingImg = document.createElement("img")
          loadingImg.classList.add("loadingImg");
 
-         loadingImg.src = "./loading.gif";
+         // Limpiar el contenido previo
+         divProgreso.innerHTML = '';
 
+         // Limpiar variables
+         usuariosFiltrados = [];
+         usuariosConCursos = [];
+         alumnosConCurso = [];
+         arrayDefinitivo = [];
+
+         // Limpiar mensajes de error
+         document.getElementById("etiqueta").style.borderColor = "#ccc";
+         document.getElementById("etiqueta2").style.borderColor = "#ccc";
+         document.getElementById("mensajeError1").textContent = "";
+         document.getElementById("mensajeError2").textContent = "";
+         
+         let tabla = document.getElementById("tablaDatos");
+         tabla.innerHTML = '';
 
          divProgreso.appendChild(loadingImg);
-         etiqueta = document.getElementById("etiqueta").value;
+         etiqueta = document.getElementById("etiqueta").value.toUpperCase();
+         etiqueta2 = document.getElementById("etiqueta2").value.toUpperCase();
+
+         arrayTagsBusqueda.push(etiqueta, etiqueta2);
+
          selectorCursos = document.getElementById("selectorCursos").value;
+         selectorCursos = selectorCursos.charAt(0).toLowerCase() + selectorCursos.replaceAll(' ', '-').slice(1);
+         console.log(selectorCursos);
 
-         searchUser();
+         if (etiqueta === "" && etiqueta2 === "") {
+            // Bordes rojos
+            document.getElementById("etiqueta").style.borderColor = "red";
+            document.getElementById("etiqueta2").style.borderColor = "red";
+            document.getElementById("mensajeError1").textContent = "Campo obligatorio";
+            document.getElementById("mensajeError2").textContent = "Campo obligatorio";
+            return;
+         } else if (etiqueta === "") {
+            // Bordes rojos
+            document.getElementById("etiqueta").style.borderColor = "red";
+            document.getElementById("mensajeError1").textContent = "Campo obligatorio";
+            return;
+         }else if(etiqueta2 === "") {
+            // Bordes rojos
+            document.getElementById("etiqueta2").style.borderColor = "red";
+            document.getElementById("mensajeError2").textContent = "Campo obligatorio";
+            return; 
+         }else {
+            // Bloquear el botón mientras se realiza la búsqueda
+            document.querySelector('button').disabled = true;
+            loadingImg.src = "./loading.gif";
+            searchUser();
+         }
 
+         
       }
 
       // hace fetch al meta para saber cuantas vueltas tiene que dar para traer todos los usuarios
@@ -174,7 +299,7 @@
             );
          }
 
-         Promise.all(fetchPromises)
+         Promise.allSettled(fetchPromises)
             .then(() => {
             });
       }
@@ -191,12 +316,13 @@
                      let curso = data.data[j].id;
                      if (!cursos.includes(curso)) {
                         cursos.push(curso);
+
                      }
                   }
                });
             promises.push(promise);
          }
-         Promise.all(promises).then(() => {
+         Promise.allSettled(promises).then(() => {
             añadirCursoAlaLista();
 
          });
@@ -206,24 +332,21 @@
 
       function añadirCursoAlaLista() {
          let select = document.getElementById("selectorCursos");
+
          for (let i = 0; i < cursos.length; i++) {
             let option = document.createElement("option");
             option.value = cursos[i]; // Debes usar cursos[i] en lugar de curso
-            option.textContent = cursos[i]; // Debes usar cursos[i] en lugar de curso
+            option.textContent = cursos[i].charAt(0).toUpperCase() + cursos[i].replaceAll('-', ' ').slice(1); // Debes usar cursos[i] en lugar de curso
             select.appendChild(option);
          }
       }
 
       // busca los usuarios que tengan la etiqueta que se le pasa por parametro y se imprimen por consola
-
       function searchUser() {
-
-         usuarios.forEach(user => {
-            user.tags.forEach(tag => {
-               if (tag === etiqueta) {
-                  usuariosFiltrados.push(user);
-               }
-            });
+         usuarios.filter(user => {
+            if (user.tags.includes(etiqueta) && user.tags.includes(etiqueta2)) {
+               usuariosFiltrados.push(user);
+            }
          });
 
          console.log(usuariosFiltrados);
@@ -242,7 +365,7 @@
 
 
          for (let i = 0; i < usuariosFiltrados.length; i++) {
-            await delay(100);
+            await delay(1);
 
             try {
                let response = await fetch(`${url}/v2/users/${usuariosFiltrados[i].id}/courses`, requestOptions);
@@ -253,7 +376,7 @@
                let listadoCursosPorUsuario = []; // Inicializar aquí para cada usuario
 
                // Recorrer cada curso y extraer la información necesaria
-               data.data.forEach(cursoData => {
+               data.data.filter(cursoData => {
                   let curso = cursoData.course.id;
                   listadoCursosPorUsuario.push(curso);
                });
@@ -295,7 +418,7 @@
          let progreso = [];
 
          for (let i = 0; i < alumnosConCurso.length; i++) {
-            await delay(100); // Esperar 100ms entre cada solicitud
+            await delay(1); // Esperar 100ms entre cada solicitud
             try {
                let response = await fetch(`${url}/v2/users/${alumnosConCurso[i].id}/courses/${selectorCursos}/progress`, requestOptions);
                if (!response.ok) throw new Error('Respuesta de red no fue ok');
@@ -309,7 +432,7 @@
                      completado: completado,
                      progreso: data.progress_rate,
                      puntuacion: data.average_score_rate,
-                     tiempo: data.time_on_course
+                     tiempo: data.time_on_course,
                   }
                };
                progreso.push(objetoProgreso);
@@ -317,26 +440,72 @@
                console.error("Hubo un problema con la operación fetch: ", error);
             }
          }
+         
 
          // Una vez todas las solicitudes se han completado y procesado, actualizar el DOM
          divProgreso.innerHTML = ''; // Limpiar el contenido previo
-         progreso.forEach(user => {
-            let divUsuario = document.createElement("div");
-            divUsuario.classList.add("progresoUsuario");
-            divUsuario.innerHTML = `
-            <h3>${user.nombre}</h3>
-            <p>Status: ${user.info.status}</p>
-            <p>Completado: ${user.info.completado}</p>
-            <p>Progreso: ${user.info.progreso}%</p>
-            <p>Puntuación: ${user.info.puntuacion}%</p>
-            <p>Tiempo en curso: ${user.info.tiempo} horas</p>
-        `;
-            divProgreso.appendChild(divUsuario);
-         });
+         
+         
+         if(progreso.length === 0){
+            divProgreso.innerHTML = '<p>No se encontraron resultados</p>';
+         } else {
+            let tableSelect = document.getElementById("tablaDatos");
+            let numeroResultados = 1;
+            divProgreso.innerHTML = '<h2>Se han encontrado ' + progreso.length + ' resultados</h2>';
+
+            // Crear la primera fila de la tabla
+            let primeraFila = document.createElement("tr");
+            primeraFila.classList.add("primeraFila");
+            primeraFila.innerHTML = `
+               <th></th>
+               <th>Nombre</th>
+               <th>Status</th>
+               <th>Progreso</th>
+               <th>Puntuación</th>
+               <th>Tiempo en curso</th>
+               <th>Fecha de finalización</th>
+            `;
+            tableSelect.appendChild(primeraFila);
+
+            // Crear una fila por cada usuario
+            progreso.forEach(user => {
+               let divUsuario = document.createElement("tr");
+               divUsuario.classList.add("tablaDatos");
+               divUsuario.innerHTML = `
+                  <th>${numeroResultados}</th>
+                  <th>${user.nombre}</th>
+                  <th>${user.info.status}</th>
+                  <th>${user.info.progreso}%</th>
+                  <th>${user.info.puntuacion}</th>
+                  <th>${Math.trunc(user.info.tiempo/60)} min</th>
+                  <th>${user.info.completado}</th>
+         `;
+               numeroResultados++;
+               tableSelect.appendChild(divUsuario);
+            });
+            datosRecibidos = true;
+         }
+         
+
+         // Desbloquear el botón una vez se han mostrado los resultados
+         document.querySelector('button').disabled = false;
+
+
+         if(datosRecibidos){
+            let resultado = document.getElementById("resultado");
+            let tablaDatos = document.getElementById("tablaDatos");
+            let formulario = document.querySelector("form");
+
+            
+            tablaDatos.classList.remove("estrecho");
+
+            formulario.classList.remove("estrecho");
+
+            tablaDatos.classList.add("ancho");
+            formulario.classList.add("ancho");
+         }
+
       }
-
-
-
       //funcion para convertir el timestamp a fecha
 
       function convertTimestampToDate(timestamp) {
@@ -361,18 +530,25 @@
 
 
    </script>
-   <form action="formularioPrincipal" method="POST">
-      <label for="etiqueta">Etiqueta:</label>
-      <input type="text" name="etiqueta" id="etiqueta">
-      <br>
-      <label for="curseID">ID-Curso:</label>
-      <label for="selectorCursos">Lista de Cursos:</label>
-      <select name="selectorCursos" id="selectorCursos">
-         <option value="default">Default</option>
-      </select>
-      <br>
+   <form action="formularioPrincipal" method="POST" class="estrecho">
+      <div class="estrecho">
+         <label for="etiqueta">Etiquetas:</label>
+         <input type="text" name="etiqueta" id="etiqueta">
+         <p id="mensajeError1"></p>
+         <input type="text" name="etiqueta2" id="etiqueta2">
+         <p id="mensajeError2"></p>
+         <label for="selectorCursos">Lista de Cursos:</label>
+         <select name="selectorCursos" id="selectorCursos">
+            <option value="default">Default</option>
+         </select>
+         <br>
       <button type="button" onclick="botonEnviar()">Buscar</button>
-      <div id="resultado"></div>
+      </div>
+      
+      <div id="resultado" class="estrecho">
+      </div>
+            <!-- Aquí se mostrarán los resultados en una tabla -->
+      <table id="tablaDatos" class="estrecho"></table>
    </form>
 </body>
 
